@@ -84,8 +84,13 @@ Remote providers receive requests and may charge for usage. Review their terms b
 
 Record model version/quantization, hardware, Ollama/LiteLLM versions, prompt, request count, concurrency, token cap, stream mode, and warm/cold state. These are request-throughput measurements, not model-quality evaluations. The starter has no DB-backed virtual keys or spend enforcement. Keep both localhost services and the unauthenticated dashboard loopback-only; don't expose on untrusted networks. The project is not production-hardened.
 
-## License and author
+## License
 
 MIT. See LICENSE.
 
-Made with ❤️ by Nitin Mehta.
+## 👨‍💻 Author
+
+**Nitin Mehta**\\
+🌐 [puffxhost.com](https://puffxhost.com)\\
+📧 [support@puffxhost.com](mailto:support@puffxhost.com)\\
+📸 @nitinmehta.codes
