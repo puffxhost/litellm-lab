@@ -90,7 +90,10 @@ MIT. See LICENSE.
 
 ## 👨‍💻 Author
 
-**Nitin Mehta**\\
-🌐 [puffxhost.com](https://puffxhost.com)\\
-📧 [support@puffxhost.com](mailto:support@puffxhost.com)\\
+**Nitin Mehta**
+
+🌐 [puffxhost.com](https://puffxhost.com)
+
+📧 [support@puffxhost.com](mailto:support@puffxhost.com)
+
 📸 @nitinmehta.codes
