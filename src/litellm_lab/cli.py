@@ -70,14 +70,13 @@ async def run_benchmark(args: argparse.Namespace) -> int:
                     ),
                     "response_id": response.id,
                 }
-            except Exception as exc:  # keep the run going and report each failed request
+            except Exception as exc:  # keep the run going without saving provider error details
                 return {
                     "type": "request",
                     "index": index,
                     "ok": False,
                     "latency_seconds": round(time.perf_counter() - request_start, 6),
                     "error_type": type(exc).__name__,
-                    "error": str(exc)[:500],
                 }
 
     try:
@@ -145,6 +144,12 @@ def main() -> None:
         for name in ("requests", "concurrency", "max_tokens"):
             if getattr(args, name) < 1:
                 raise SystemExit(f"--{name.replace('_', '-')} must be at least 1")
+        if args.requests > 10000:
+            raise SystemExit("--requests cannot exceed 10000")
+        if args.concurrency > 256:
+            raise SystemExit("--concurrency cannot exceed 256")
+        if args.timeout <= 0:
+            raise SystemExit("--timeout must be greater than 0")
         raise SystemExit(asyncio.run(args.handler(args)))
 
 
