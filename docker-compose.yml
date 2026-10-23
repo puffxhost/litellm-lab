@@ -4,9 +4,9 @@ services:
     restart: unless-stopped
     volumes:
       - ollama_data:/root/.ollama
-    # Do not publish Ollama directly to the host by default.
-    expose:
-      - "11434"
+    # Loopback-only host port enables local model discovery.
+    ports:
+      - "127.0.0.1:11434:11434"
 
   litellm:
     image: docker.litellm.ai/berriai/litellm:latest
@@ -14,6 +14,8 @@ services:
     depends_on:
       - ollama
     command: ["--config", "/app/config.yaml", "--host", "0.0.0.0", "--port", "4000"]
+    env_file:
+      - .env
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?Set LITELLM_MASTER_KEY in .env}
     volumes:
