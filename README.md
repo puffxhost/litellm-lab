@@ -66,17 +66,17 @@ uv sync
 uv run litellm-lab bench --base-url http://127.0.0.1:4000/v1 --model local-llama --requests 20 --concurrency 4
 ```
 
-The CLI reads `LITELLM_API_KEY` from the environment. It defaults to the local master key variable in `.env` only when you explicitly export it:
+The CLI reads `LITELLM_API_KEY` from the environment. Copy the master key from `.env` into this variable before starting the CLI:
 
 ```bash
 # macOS / Linux
-export LITELLM_API_KEY="$LITELLM_MASTER_KEY"
+export LITELLM_API_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d= -f2-)"
 
 # PowerShell
-$env:LITELLM_API_KEY = $env:LITELLM_MASTER_KEY
+$env:LITELLM_API_KEY = (Get-Content .env | Where-Object { $_ -match '^LITELLM_MASTER_KEY=' }) -replace '^LITELLM_MASTER_KEY=', ''
 ```
 
-Optional flags include `--prompt`, `--max-tokens`, and `--output`. The output file contains one JSON object per request plus a final summary; it records metrics and errors, not prompt or model response text. Keep benchmark logs private if you add custom metadata or prompts in a future extension.
+Optional flags include `--prompt`, `--max-tokens`, and `--output`. The output file contains one JSON object per request plus a final summary; it records metrics and error types, not prompt or model response text. Keep benchmark logs private if you add custom metadata or prompts in a future extension.
 
 ## Configure another provider or model
 
