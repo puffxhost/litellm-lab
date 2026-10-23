@@ -47,6 +47,7 @@ This repository is a learning and evaluation scaffold. It does not include a hos
 4. Send a chat request:
 
    ```bash
+   export LITELLM_MASTER_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d= -f2-)"
    curl http://127.0.0.1:4000/v1/chat/completions \
      -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
      -H "Content-Type: application/json" \
