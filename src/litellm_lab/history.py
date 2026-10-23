@@ -40,8 +40,12 @@ def save(summary, path=None):
     cols = ", ".join(FIELDS)
     marks = ", ".join("?" for _ in FIELDS)
     vals = [int(summary.get(k, False)) if k == "stream" else summary.get(k) for k in FIELDS]
-    with connect(path) as db:
-        db.execute("INSERT INTO benchmark_runs (" + cols + ") VALUES (" + marks + ")", vals)
+    db = connect(path)
+    try:
+        with db:
+            db.execute("INSERT INTO benchmark_runs (" + cols + ") VALUES (" + marks + ")", vals)
+    finally:
+        db.close()
 
 
 def load(path=None, limit=5000):
