@@ -97,3 +97,5 @@ MIT. See LICENSE.
 📧 [support@puffxhost.com](mailto:support@puffxhost.com)
 
 📸 @nitinmehta.codes
+
+Made with ❤️ by **Nitin Mehta**.
