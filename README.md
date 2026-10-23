@@ -1,122 +1,91 @@
 # LiteLLM Lab
 
-**Local Model Testing & API Gateway** — a small, reproducible lab for running local language models behind the OpenAI-compatible [LiteLLM Proxy](https://docs.litellm.ai/) and measuring request latency and throughput.
+**Local Model Testing & API Gateway** — discover Ollama models, route them through LiteLLM, compare configured aliases, and inspect benchmark history.
 
-> Designed for local development. The Docker Compose gateway binds to `127.0.0.1`; review the security notes before changing its network exposure.
+## Features
 
-## What is included
+- Local Ollama + LiteLLM gateway with loopback-only host ports.
+- Ollama model auto-detection with size, parameter, and quantization details.
+- Async benchmarks with configurable concurrency, streaming TTFT, latency percentiles, tokens/sec, and failures.
+- Sequential model comparisons with shared prompts and settings.
+- Local SQLite aggregate history and CSV/JSON export.
+- Streamlit comparison dashboard and history downloads.
 
-- **LiteLLM Proxy** configuration with a local Ollama model alias, using the same OpenAI-compatible chat API clients use in production.
-- **Ollama + LiteLLM Compose stack** for a local, no-provider-key starting point.
-- **Async benchmark CLI** with configurable request count and concurrency; records latency, token usage, throughput, and failures as JSON Lines.
-- **Reproducible run notes** so model, hardware, quantization, concurrency, and prompt settings can be compared consistently.
+## Quick start
 
-This repository is a learning and evaluation scaffold. It does not include a hosted service, authentication UI, database-backed virtual keys, usage billing, or a production deployment.
+Requirements: Docker Compose v2, Python 3.11+, and enough memory for the selected Ollama model. Install uv for the Python CLI.
 
-## Requirements
+1. Copy the environment template and replace the placeholder with a unique sk- key:
 
-- Docker Engine and Docker Compose v2.
-- Python 3.11+ and `uv` for the benchmark CLI.
-- Enough RAM/VRAM for the Ollama model you choose. Model downloads can be several gigabytes.
+    cp .env.example .env
 
-## Quick start: local gateway
+Keep .env private; it is gitignored.
 
-1. Copy the sample environment file and choose a strong local gateway key:
+2. Start services and pull a model:
 
-   ```bash
-   cp .env.example .env
-   ```
+    docker compose up -d
+    docker compose exec ollama ollama pull llama3.2
 
-   Replace `LITELLM_MASTER_KEY` in `.env` with a unique random value beginning with `sk-`. Keep `.env` private; it is ignored by Git.
+3. Install the CLI, discover models, and check the gateway:
 
-2. Start the services:
+    uv sync
+    uv run litellm-lab models
+    curl http://127.0.0.1:4000/health/liveliness
 
-   ```bash
-   docker compose up -d
-   docker compose exec ollama ollama pull llama3.2
-   ```
+4. Load the gateway key into the shell:
 
-   The model download can take a while. Check service logs with `docker compose logs -f litellm`.
+    export LITELLM_MASTER_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d= -f2-)"
+    export LITELLM_API_KEY="$LITELLM_MASTER_KEY"
 
-3. Confirm the gateway responds:
+PowerShell:
 
-   ```bash
-   curl http://127.0.0.1:4000/health/liveliness
-   ```
+    $env:LITELLM_MASTER_KEY = (Get-Content .env | Where-Object { $_ -match '^LITELLM_MASTER_KEY=' }) -replace '^LITELLM_MASTER_KEY=', ''
+    $env:LITELLM_API_KEY = $env:LITELLM_MASTER_KEY
 
-4. Send a chat request:
+## Benchmark and compare
 
-   ```bash
-   export LITELLM_MASTER_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d= -f2-)"
-   curl http://127.0.0.1:4000/v1/chat/completions \
-     -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"model":"local-llama","messages":[{"role":"user","content":"Give me one sentence about local AI."}]}'
-   ```
+Run one model:
 
-On PowerShell, set the key in the current shell with `$env:LITELLM_MASTER_KEY = "your-key"` before running curl.
+    uv run litellm-lab bench --model local-llama --requests 20 --concurrency 4
 
-The model alias is `local-llama`; change it in both `litellm_config.yaml` and your request if you select another Ollama model. Pull that model into Ollama before sending requests.
+Measure time to first content token:
 
-## Run the benchmark CLI
+    uv run litellm-lab bench --model local-llama --stream --requests 20 --concurrency 4
 
-In another terminal:
+Add model aliases in litellm_config.yaml and pull their Ollama models, then compare sequentially:
 
-```bash
-uv sync
-uv run litellm-lab bench --base-url http://127.0.0.1:4000/v1 --model local-llama --requests 20 --concurrency 4
-```
+    uv run litellm-lab compare --models local-llama local-qwen --requests 20 --concurrency 2 --stream
 
-The CLI reads `LITELLM_API_KEY` from the environment. Copy the master key from `.env` into this variable before starting the CLI:
+The comparison runs one alias at a time to reduce interference. Results report request latency, p50/p95, TTFT, token usage, throughput, and failures. Streaming TTFT is the first non-empty content chunk observed by the client; providers may omit token usage for streams.
 
-```bash
-# macOS / Linux
-export LITELLM_API_KEY="$(grep '^LITELLM_MASTER_KEY=' .env | cut -d= -f2-)"
+Optional --output results/run.jsonl writes JSONL. Error records store only an error class. SQLite summaries default to ~/.litellm-lab/history.sqlite3; set LITELLM_LAB_DB or pass --history-db to choose another path.
 
-# PowerShell
-$env:LITELLM_API_KEY = (Get-Content .env | Where-Object { $_ -match '^LITELLM_MASTER_KEY=' }) -replace '^LITELLM_MASTER_KEY=', ''
-```
+## Dashboard and history exports
 
-Optional flags include `--prompt`, `--max-tokens`, and `--output`. The output file contains one JSON object per request plus a final summary; it records metrics and error types, not prompt or model response text. Keep benchmark logs private if you add custom metadata or prompts in a future extension.
+    uv sync --extra dashboard
+    uv run streamlit run dashboard.py --server.address 127.0.0.1
 
-## Configure another provider or model
+The dashboard compares p50/p95 latency, TTFT, throughput, success rate, and run history. It can download CSV or JSON. CLI alternatives:
 
-Edit `litellm_config.yaml` and add a model entry using the LiteLLM provider/model naming convention. Put provider credentials in environment variables referenced from the config (for example, `os.environ/OPENAI_API_KEY`); never commit real keys. Restart the gateway after changing the config:
+    uv run litellm-lab history --limit 50
+    uv run litellm-lab export-history --format csv --output results/history.csv
 
-```bash
-docker compose restart litellm
-```
+History stores model alias, endpoint, run settings, metrics, and a SHA-256 prompt hash. It does not store raw prompts or model responses. Protect metrics and history files as local data.
 
-For remote providers, calls leave your computer and may incur charges. Read the provider's data and billing terms before using real or sensitive prompts. This starter's Ollama route stays on the Compose network.
+## Add another provider
 
-## Benchmark methodology
+Edit litellm_config.yaml and use LiteLLM's provider/model syntax. Put provider keys in the ignored .env file (for example OPENAI_API_KEY=...) and reference them with os.environ/OPENAI_API_KEY. Compose passes only .env variables to LiteLLM. Restart after config changes:
 
-For comparable runs, record the model name and quantization, hardware, Ollama and LiteLLM versions, prompt, maximum output tokens, request count, concurrency, and whether the model was warmed up. The CLI sends independent requests concurrently; results are not a controlled benchmark of model quality. First-token latency is not measured, and streaming is not enabled. Run repeated trials and compare percentiles rather than relying on a single average.
+    docker compose restart litellm
 
-## Security and operations
+Remote providers receive requests and may charge for usage. Review their terms before sending sensitive data or using billable models.
 
-- The Compose port is published only on loopback. Do not change it to `0.0.0.0` on an untrusted network.
-- The master key is a local admin credential. Do not expose it in browser code, logs, screenshots, or commits.
-- The starter has no database. Do not assume LiteLLM spend limits or virtual-key features are enforced in this setup; configure provider-side spending controls as well if using billable APIs.
-- Avoid sending private or regulated data to a remote model provider unless you have authorization and an appropriate data-processing arrangement.
-- This is not production-hardened. For multi-user or public deployments, configure TLS, secret management, a database, access controls, monitoring, rate limits, and network restrictions.
+## Methodology and security
 
-## Project layout
+Record model version/quantization, hardware, Ollama/LiteLLM versions, prompt, request count, concurrency, token cap, stream mode, and warm/cold state. These are request-throughput measurements, not model-quality evaluations. The starter has no DB-backed virtual keys or spend enforcement. Keep both localhost services and the unauthenticated dashboard loopback-only; don't expose on untrusted networks. The project is not production-hardened.
 
-```text
-.
-├── docker-compose.yml
-├── litellm_config.yaml
-├── .env.example
-├── pyproject.toml
-└── src/litellm_lab/
-    └── cli.py
-```
+## License and author
 
-## License
+MIT. See LICENSE.
 
-MIT. See [LICENSE](LICENSE).
-
-## Author
-
-Made with ❤️ by [Nitin Mehta](https://github.com/puffxhost).
+Made with ❤️ by Nitin Mehta.

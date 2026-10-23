@@ -1,14 +1,15 @@
 [project]
 name = "litellm-lab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Local model testing and LiteLLM gateway benchmark tools"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [{ name = "Nitin Mehta" }]
-dependencies = [
-  "openai>=1.30,<3",
-]
+dependencies = ["openai>=1.30,<3"]
+
+[project.optional-dependencies]
+dashboard = ["pandas>=2.2,<4", "streamlit>=1.40,<2"]
 
 [project.scripts]
 litellm-lab = "litellm_lab.cli:main"
