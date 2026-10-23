@@ -1,0 +1,21 @@
+[project]
+name = "litellm-lab"
+version = "0.1.0"
+description = "Local model testing and LiteLLM gateway benchmark tools"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Nitin Mehta" }]
+dependencies = [
+  "openai>=1.30,<3",
+]
+
+[project.scripts]
+litellm-lab = "litellm_lab.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.24,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/litellm_lab"]
